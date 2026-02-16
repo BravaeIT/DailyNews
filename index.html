@@ -1,76 +1,57 @@
-<!DOCTYPE html>
-<html lang="es">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Intelligence Brief | 2026</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
-    <style>
-        body { background-color: #0a0a0c; color: #d1d1d6; font-family: 'Inter', sans-serif; }
-        h1, h2 { font-family: 'Playfair Display', serif; }
-        .gold-accent { color: #c5a059; }
-        .card { background: #16161a; border: 1px solid #242429; transition: all 0.3s ease; }
-        .card:hover { border-color: #c5a059; }
-        .status-bar { background: #1c1c21; border-bottom: 1px solid #242429; }
-    </style>
-</head>
-<body class="min-h-screen">
+import os
+import feedparser
+import json
+import re
+from datetime import datetime
+from google import genai
 
-    <div class="status-bar px-6 py-2 flex justify-between items-center text-[10px] tracking-[0.2em] font-bold text-gray-500 uppercase">
-        <div>Live Intelligence Feed • 16 / 02 / 2026</div>
-        <div class="flex space-x-4">
-            <span class="text-green-500 italic underline">Actualizado por IA en Tiempo Real</span>
-        </div>
-    </div>
+client = genai.Client(api_key=os.environ.get("GOOGLE_API_KEY") or os.environ.get("GEMINI_API_KEY"))
 
-    <header class="max-w-5xl mx-auto pt-16 pb-12 px-6 text-center">
-        <h1 class="text-5xl md:text-7xl text-white mb-4 italic">The Daily Brief</h1>
-        <p class="text-gray-500 font-light tracking-[0.3em] uppercase text-xs">Análisis Multilingüe de Fuentes de Élite</p>
-    </header>
+def fetch_top_news():
+    feeds = {'ES': 'https://e00-expansion.uecdn.es/rss/portada.xml',
+             'UK': 'https://www.ft.com/?format=rss',
+             'GL': 'https://rss.nytimes.com/services/xml/rss/nyt/World.xml'}
+    text = ""
+    for region, url in feeds.items():
+        try:
+            d = feedparser.parse(url)
+            for entry in d.entries[:5]:
+                text += f"[{region}] {entry.title}. "
+        except: continue
+    return text
 
-    <main class="max-w-5xl mx-auto px-6 grid grid-cols-1 md:grid-cols-12 gap-8 pb-20">
-        <div class="md:col-span-8 space-y-12">
-            <section>
-                <div class="flex items-center space-x-4 mb-6">
-                    <span class="h-[1px] flex-grow bg-gray-800"></span>
-                    <h2 class="text-2xl text-white uppercase tracking-wider">España</h2>
-                    <span class="h-[1px] flex-grow bg-gray-800"></span>
-                </div>
-                <article>
-                    <span class="text-xs gold-accent font-bold uppercase tracking-widest">Macro & Mercados</span>
-                    <div class="mt-4 text-gray-400 leading-relaxed font-light text-lg">
-                        Ultima hora en Expansión: Revisión de la jornada financiera y principales valores del Ibex.
-                    </div>
-                </article>
-            </section>
-            <section>
-                <div class="flex items-center space-x-4 mb-6">
-                    <span class="h-[1px] flex-grow bg-gray-800"></span>
-                    <h2 class="text-2xl text-white uppercase tracking-wider">Europa & UK</h2>
-                    <span class="h-[1px] flex-grow bg-gray-800"></span>
-                </div>
-                <div class="card p-6 rounded-sm">
-                    <div class="text-gray-400 leading-relaxed font-light">
-                        Actualidad Europea: El Financial Times analiza la estabilidad económica y el mercado de divisas.
-                    </div>
-                </div>
-            </section>
-        </div>
-        <aside class="md:col-span-4 space-y-10 border-l border-gray-900 pl-8">
-            <section>
-                <h2 class="text-xs gold-accent font-bold uppercase tracking-widest mb-6">USA & Global</h2>
-                <div class="text-sm text-gray-400 leading-relaxed">
-                    Contexto Internacional: El New York Times reporta movimientos clave en la geopolítica mundial.
-                </div>
-            </section>
-            <section class="bg-[#1c1c21] p-6 rounded-sm border-l-2 border-[#c5a059]">
-                <h2 class="text-[10px] gold-accent font-bold uppercase tracking-widest mb-3">IA STRATEGIC INSIGHT</h2>
-                <p class="text-xs text-gray-300 leading-relaxed italic font-light">
-                    "Mercados en fase de observación ante la próxima publicación de datos de inflación."
-                </p>
-            </section>
-        </aside>
-    </main>
-</body>
-</html>
+def analyze():
+    raw_news = fetch_top_news()
+    prompt = f"Summarize these news in Spanish for a financial briefing. Return ONLY a JSON object with keys: 'espana', 'europa', 'global', 'insight'. News: {raw_news}"
+    
+    try:
+        response = client.models.generate_content(model="gemini-2.0-flash", contents=prompt)
+        clean_json = re.search(r'\{.*\}', response.text, re.DOTALL).group(0)
+        return json.loads(clean_json)
+    except:
+        return {
+            "espana": "Actualidad financiera española: Revisando Expansión.",
+            "europa": "Reporte Europeo: Analizando tendencias en FT y Les Échos.",
+            "global": "Mercados Globales: Siguiendo la sesión internacional.",
+            "insight": "Análisis de riesgo en curso."
+        }
+
+def run():
+    data = analyze()
+    # LEEMOS DE LA PLANTILLA
+    with open("template.html", "r", encoding="utf-8") as f:
+        html = f.read()
+    
+    # REEMPLAZAMOS
+    html = html.replace("16 / 02 / 2026", datetime.now().strftime("%d / %m / %Y"))
+    html = html.replace("Noticias de España en actualización.", data['espana'])
+    html = html.replace("Mercados europeos estables.", data['europa'])
+    html = html.replace("Actualidad global en curso.", data['global'])
+    html = html.replace("Análisis de riesgo.", data['insight'])
+
+    # ESCRIBIMOS EL RESULTADO EN INDEX.HTML
+    with open("index.html", "w", encoding="utf-8") as f:
+        f.write(html)
+
+if __name__ == "__main__":
+    run()
