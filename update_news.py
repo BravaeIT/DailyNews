@@ -1,4 +1,4 @@
-import os, feedparser, re
+import os, feedparser, re, json
 from datetime import datetime
 from google import genai
 
@@ -18,29 +18,29 @@ def fetch_top_news():
 
 def run():
     raw_news = fetch_top_news()
-    # Le pedimos a la IA un formato ultra-simple de etiquetas
     prompt = f"Analiza estas noticias y genera 4 párrafos cortos. Empieza cada párrafo con 'TEXTO1:', 'TEXTO2:', 'TEXTO3:' y 'TEXTO4:'. Noticias: {raw_news}"
     
     try:
         response = client.models.generate_content(model="gemini-2.0-flash", contents=prompt).text
-        # Extraemos el contenido entre nuestras etiquetas personalizadas
         es = re.search(r'TEXTO1:(.*?)TEXTO2:', response, re.S).group(1).strip()
         eu = re.search(r'TEXTO2:(.*?)TEXTO3:', response, re.S).group(1).strip()
         gl = re.search(r'TEXTO3:(.*?)TEXTO4:', response, re.S).group(1).strip()
         ia = re.search(r'TEXTO4:(.*)', response, re.S).group(1).strip()
     except:
-        # Si falla, usamos los titulares directos como backup real
-        es, eu, gl, ia = "Noticias de España en actualización.", "Mercados europeos estables.", "Actualidad global en curso.", "Análisis de riesgo."
+        es, eu, gl, ia = "Sincronizando España...", "Sincronizando Europa...", "Sincronizando Global...", "Analizando tendencia..."
 
+    # LEER LA PLANTILLA (HTML PURO)
     with open("template.html", "r", encoding="utf-8") as f:
         html = f.read()
     
+    # REEMPLAZAR MARCADORES
     html = html.replace("{{FECHA}}", datetime.now().strftime("%d / %m / %Y"))
     html = html.replace("{{ES_CONTENT}}", es)
     html = html.replace("{{EU_CONTENT}}", eu)
     html = html.replace("{{GL_CONTENT}}", gl)
     html = html.replace("{{IA_INSIGHT}}", ia)
 
+    # ESCRIBIR RESULTADO
     with open("index.html", "w", encoding="utf-8") as f:
         f.write(html)
 
