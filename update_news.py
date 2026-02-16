@@ -1,4 +1,4 @@
-import os, feedparser, re, json
+import os, feedparser
 from datetime import datetime
 from google import genai
 
@@ -12,35 +12,35 @@ def fetch_top_news():
     for reg, url in feeds.items():
         try:
             d = feedparser.parse(url)
-            text += f"REGION {reg}: " + " | ".join([e.title for e in d.entries[:3]]) + "\n"
+            text += f"REGION {reg}: " + " | ".join([e.title for e in d.entries[:3]]) + ". "
         except: continue
     return text
 
 def run():
     raw_news = fetch_top_news()
-    prompt = f"Analiza estas noticias y genera 4 párrafos cortos. Empieza cada párrafo con 'TEXTO1:', 'TEXTO2:', 'TEXTO3:' y 'TEXTO4:'. Noticias: {raw_news}"
+    # Pedimos una lista simple separada por asteriscos
+    prompt = f"Analiza estas noticias y haz 4 párrafos cortos (España, Europa, Global, Insight). Separa cada párrafo UNICAMENTE con el símbolo '$'. No pongas títulos. Noticias: {raw_news}"
     
     try:
         response = client.models.generate_content(model="gemini-2.0-flash", contents=prompt).text
-        es = re.search(r'TEXTO1:(.*?)TEXTO2:', response, re.S).group(1).strip()
-        eu = re.search(r'TEXTO2:(.*?)TEXTO3:', response, re.S).group(1).strip()
-        gl = re.search(r'TEXTO3:(.*?)TEXTO4:', response, re.S).group(1).strip()
-        ia = re.search(r'TEXTO4:(.*)', response, re.S).group(1).strip()
+        partes = response.split('$')
+        # Si la IA nos da al menos las 4 partes, las usamos. Si no, al backup.
+        es = partes[0].strip() if len(partes) > 0 else "Actualidad española en curso."
+        eu = partes[1].strip() if len(partes) > 1 else "Actualidad europea en curso."
+        gl = partes[2].strip() if len(partes) > 2 else "Actualidad internacional en curso."
+        ia = partes[3].strip() if len(partes) > 3 else "Analizando implicaciones estratégicas."
     except:
-        es, eu, gl, ia = "Sincronizando España...", "Sincronizando Europa...", "Sincronizando Global...", "Analizando tendencia..."
+        es, eu, gl, ia = "Error de conexión con la IA.", "Reintentando...", "Reintentando...", "Reintentando..."
 
-    # LEER LA PLANTILLA (HTML PURO)
     with open("template.html", "r", encoding="utf-8") as f:
         html = f.read()
     
-    # REEMPLAZAR MARCADORES
     html = html.replace("{{FECHA}}", datetime.now().strftime("%d / %m / %Y"))
     html = html.replace("{{ES_CONTENT}}", es)
     html = html.replace("{{EU_CONTENT}}", eu)
     html = html.replace("{{GL_CONTENT}}", gl)
     html = html.replace("{{IA_INSIGHT}}", ia)
 
-    # ESCRIBIR RESULTADO
     with open("index.html", "w", encoding="utf-8") as f:
         f.write(html)
 
