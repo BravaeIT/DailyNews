@@ -18,7 +18,7 @@
 <body class="min-h-screen">
 
     <div class="status-bar px-6 py-2 flex justify-between items-center text-[10px] tracking-[0.2em] font-bold text-gray-500 uppercase">
-        <div>Live Intelligence Feed • 16/02/2026</div>
+        <div>Live Intelligence Feed • {{FECHA}}</div>
         <div class="flex space-x-4">
             <span class="text-green-500 italic underline">Actualizado por IA en Tiempo Real</span>
         </div>
@@ -30,7 +30,6 @@
     </header>
 
     <main class="max-w-5xl mx-auto px-6 grid grid-cols-1 md:grid-cols-12 gap-8 pb-20">
-        
         <div class="md:col-span-8 space-y-12">
             <section>
                 <div class="flex items-center space-x-4 mb-6">
@@ -41,11 +40,10 @@
                 <article>
                     <span class="text-xs gold-accent font-bold uppercase tracking-widest">Macro & Mercados</span>
                     <div class="mt-4 text-gray-400 leading-relaxed font-light text-lg">
-                        Error al procesar noticias de España hoy.
+                        {{ES_CONTENT}}
                     </div>
                 </article>
             </section>
-
             <section>
                 <div class="flex items-center space-x-4 mb-6">
                     <span class="h-[1px] flex-grow bg-gray-800"></span>
@@ -54,32 +52,25 @@
                 </div>
                 <div class="card p-6 rounded-sm">
                     <div class="text-gray-400 leading-relaxed font-light">
-                        Error al procesar noticias de Europa.
+                        {{EU_CONTENT}}
                     </div>
                 </div>
             </section>
         </div>
-
         <aside class="md:col-span-4 space-y-10 border-l border-gray-900 pl-8">
             <section>
                 <h2 class="text-xs gold-accent font-bold uppercase tracking-widest mb-6">USA & Global</h2>
                 <div class="text-sm text-gray-400 leading-relaxed">
-                    Error al procesar noticias Globales.
+                    {{GL_CONTENT}}
                 </div>
             </section>
-
             <section class="bg-[#1c1c21] p-6 rounded-sm border-l-2 border-[#c5a059]">
                 <h2 class="text-[10px] gold-accent font-bold uppercase tracking-widest mb-3">IA STRATEGIC INSIGHT</h2>
                 <p class="text-xs text-gray-300 leading-relaxed italic font-light">
-                    "Reintentando conexión con fuentes de élite..."
+                    "{{IA_INSIGHT}}"
                 </p>
             </section>
-
-            <div class="text-[9px] text-gray-600 uppercase tracking-tighter">
-                Fuentes monitoreadas: ABC, El Mundo, Expansión, FT, The Economist, WSJ, NYT, Les Échos, FAZ.
-            </div>
         </aside>
     </main>
-
 </body>
 </html>
