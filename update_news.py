@@ -69,24 +69,30 @@ def analyze_with_ai(news_raw):
         return {"espana": "Error", "europa": "Error", "global": "Error", "insight": "Error"}
 
 def rewrite_html(data):
-    with open("index.html", "r", encoding="utf-8") as f:
-        content = f.read()
-    
-    fecha_hoy = datetime.now().strftime("%d de %B, %Y")
-    
-    content = content.replace("{{FECHA}}", fecha_hoy)
-    content = content.replace("{{ES_CONTENT}}", data['espana'])
-    content = content.replace("{{EU_CONTENT}}", data['europa'])
-    content = content.replace("{{GL_CONTENT}}", data['global'])
-    content = content.replace("{{IA_INSIGHT}}", data['insight'])
-    
-    with open("index.html", "w", encoding="utf-8") as f:
-        f.write(content)
+    try:
+        with open("index.html", "r", encoding="utf-8") as f:
+            content = f.read()
+        
+        fecha_hoy = datetime.now().strftime("%d / %m / %Y")
+        
+        # Usamos un diccionario para asegurar que reemplazamos todo
+        replacements = {
+            "{{FECHA}}": fecha_hoy,
+            "{{ES_CONTENT}}": data.get('espana', 'Sin datos'),
+            "{{EU_CONTENT}}": data.get('europa', 'Sin datos'),
+            "{{GL_CONTENT}}": data.get('global', 'Sin datos'),
+            "{{IA_INSIGHT}}": data.get('insight', 'Sin datos')
+        }
+        
+        for key, value in replacements.items():
+            if key in content:
+                content = content.replace(key, value)
+            else:
+                print(f"Advertencia: No se encontró el marcador {key}")
 
-if __name__ == "__main__":
-    print("--- Iniciando proceso 2026 ---")
-    raw_data = fetch_top_news()
-    if raw_data:
-        analysis = analyze_with_ai(raw_data)
-        rewrite_html(analysis)
-        print("--- Proceso completado con éxito ---")
+        with open("index.html", "w", encoding="utf-8") as f:
+            f.write(content)
+        print("HTML actualizado con éxito.")
+    except Exception as e:
+        print(f"Error crítico en rewrite_html: {e}")
+        
