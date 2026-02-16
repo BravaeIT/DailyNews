@@ -64,31 +64,13 @@ def run():
     with open("index.html", "r", encoding="utf-8") as f:
         html = f.read()
     
-    # Reemplazos con la fecha real
+    # Reemplazo limpio y directo
     html = html.replace("{{FECHA}}", datetime.now().strftime("%d / %m / %Y"))
-    
-    # IMPORTANTE: Si los placeholders ya fueron borrados, los buscamos por el texto que hay ahora
-    # Pero para asegurar, simplemente sobreescribimos los campos clave.
-    # Como la web ya tiene el texto de "Noticias de España...", vamos a buscar eso para cambiarlo.
-    
-    marcadores = {
-        "Noticias de España disponibles en el link original.": data['espana'],
-        "Actualidad europea en desarrollo.": data['europa'],
-        "Mercados internacionales activos.": data['global'],
-        "Análisis estratégico en curso.": data['insight']
-    }
-    
-    for viejo, nuevo in marcadores.items():
-        html = html.replace(viejo, nuevo)
-        
-    # Por si acaso aún quedan los originales
-    html = html.replace("{{ES_CONTENT}}", data['espana'])
-    html = html.replace("{{EU_CONTENT}}", data['europa'])
-    html = html.replace("{{GL_CONTENT}}", data['global'])
-    html = html.replace("{{IA_INSIGHT}}", data['insight'])
+    html = html.replace("{{ES_CONTENT}}", data.get('espana', 'Actualizando...'))
+    html = html.replace("{{EU_CONTENT}}", data.get('europa', 'Actualizando...'))
+    html = html.replace("{{GL_CONTENT}}", data.get('global', 'Actualizando...'))
+    html = html.replace("{{IA_INSIGHT}}", data.get('insight', 'Actualizando...'))
 
     with open("index.html", "w", encoding="utf-8") as f:
         f.write(html)
-
-if __name__ == "__main__":
-    run()
+        
