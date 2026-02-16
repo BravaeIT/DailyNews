@@ -1,57 +1,75 @@
-import os
-import feedparser
-import json
-import re
-from datetime import datetime
-from google import genai
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Daily Briefing | Intelligence Feed</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&family=Playfair+Display:italic,wght@700&display=swap" rel="stylesheet">
+    <style>
+        body { background-color: #050505; color: #a1a1aa; font-family: 'Inter', sans-serif; }
+        .serif { font-family: 'Playfair Display', serif; }
+        .gold-accent { color: #d4af37; }
+        .border-gold { border-color: #d4af37; }
+        .glass-card { background: #0f0f12; border: 1px solid #1f1f23; }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col">
 
-client = genai.Client(api_key=os.environ.get("GOOGLE_API_KEY") or os.environ.get("GEMINI_API_KEY"))
+    <div class="w-full py-2 px-6 border-b border-zinc-900 flex justify-between items-center text-[10px] tracking-[0.3em] font-bold uppercase text-zinc-500">
+        <span>Status: Live Intelligence Feed</span>
+        <span>{{FECHA}}</span>
+    </div>
 
-def fetch_top_news():
-    feeds = {'ES': 'https://e00-expansion.uecdn.es/rss/portada.xml',
-             'UK': 'https://www.ft.com/?format=rss',
-             'GL': 'https://rss.nytimes.com/services/xml/rss/nyt/World.xml'}
-    text = ""
-    for region, url in feeds.items():
-        try:
-            d = feedparser.parse(url)
-            for entry in d.entries[:5]:
-                text += f"[{region}] {entry.title}. "
-        except: continue
-    return text
+    <header class="max-w-5xl mx-auto w-full pt-20 pb-16 px-6">
+        <h1 class="text-6xl md:text-8xl text-white serif mb-4">The Daily Brief</h1>
+        <p class="text-xs uppercase tracking-[0.5em] gold-accent">Análisis de fuentes de élite configurado por IA</p>
+    </header>
 
-def analyze():
-    raw_news = fetch_top_news()
-    prompt = f"Summarize these news in Spanish for a financial briefing. Return ONLY a JSON object with keys: 'espana', 'europa', 'global', 'insight'. News: {raw_news}"
-    
-    try:
-        response = client.models.generate_content(model="gemini-2.0-flash", contents=prompt)
-        clean_json = re.search(r'\{.*\}', response.text, re.DOTALL).group(0)
-        return json.loads(clean_json)
-    except:
-        return {
-            "espana": "Actualidad financiera española: Revisando Expansión.",
-            "europa": "Reporte Europeo: Analizando tendencias en FT y Les Échos.",
-            "global": "Mercados Globales: Siguiendo la sesión internacional.",
-            "insight": "Análisis de riesgo en curso."
-        }
+    <main class="max-w-5xl mx-auto w-full px-6 grid grid-cols-1 md:grid-cols-12 gap-12 pb-24">
+        
+        <div class="md:col-span-8 space-y-16">
+            <section>
+                <h2 class="text-white text-xs font-bold uppercase tracking-widest mb-6 flex items-center">
+                    <span class="w-8 h-[1px] bg-zinc-800 mr-4"></span> España
+                </h2>
+                <div class="text-xl md:text-2xl text-zinc-300 leading-relaxed font-light">
+                    {{ES_CONTENT}}
+                </div>
+            </section>
 
-def run():
-    data = analyze()
-    # LEEMOS DE LA PLANTILLA
-    with open("template.html", "r", encoding="utf-8") as f:
-        html = f.read()
-    
-    # REEMPLAZAMOS
-    html = html.replace("16 / 02 / 2026", datetime.now().strftime("%d / %m / %Y"))
-    html = html.replace("Noticias de España en actualización.", data['espana'])
-    html = html.replace("Mercados europeos estables.", data['europa'])
-    html = html.replace("Actualidad global en curso.", data['global'])
-    html = html.replace("Análisis de riesgo.", data['insight'])
+            <section>
+                <h2 class="text-white text-xs font-bold uppercase tracking-widest mb-6 flex items-center">
+                    <span class="w-8 h-[1px] bg-zinc-800 mr-4"></span> Europa & UK
+                </h2>
+                <div class="text-lg text-zinc-400 leading-relaxed font-light">
+                    {{EU_CONTENT}}
+                </div>
+            </section>
+        </div>
 
-    # ESCRIBIMOS EL RESULTADO EN INDEX.HTML
-    with open("index.html", "w", encoding="utf-8") as f:
-        f.write(html)
+        <div class="md:col-span-4 space-y-12">
+            <section class="glass-card p-8 rounded-sm">
+                <h2 class="gold-accent text-[10px] font-bold uppercase tracking-widest mb-4 italic">IA Strategic Insight</h2>
+                <p class="text-sm text-zinc-300 leading-relaxed italic border-l border-gold pl-4">
+                    "{{IA_INSIGHT}}"
+                </p>
+            </section>
 
-if __name__ == "__main__":
-    run()
+            <section>
+                <h2 class="text-zinc-500 text-[10px] font-bold uppercase tracking-widest mb-6">Global Markets</h2>
+                <div class="text-sm text-zinc-400 leading-relaxed">
+                    {{GL_CONTENT}}
+                </div>
+            </section>
+
+            <div class="pt-8 border-t border-zinc-900">
+                <p class="text-[9px] text-zinc-600 uppercase tracking-widest leading-loose">
+                    Fuentes: Financial Times, Expansion, NYT, Les Echos. Procesado vía Gemini 2.0 Flash.
+                </p>
+            </div>
+        </div>
+    </main>
+
+</body>
+</html>
