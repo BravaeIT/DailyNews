@@ -22,7 +22,6 @@ MODEL = os.getenv("GEMINI_MODEL", "gemini-2.0-flash")
 TZ = ZoneInfo("Europe/Madrid")
 UA = "Mozilla/5.0 (compatible; DailyBriefBot/1.0; +https://github.com/)"
 
-# RSS “directos” (ajusta a tu gusto)
 FEEDS = {
     "spain": [
         ("Expansión", "https://e00-expansion.uecdn.es/rss/portada.xml"),
@@ -59,7 +58,7 @@ KEYWORDS = [
     "élection", "gouvernement", "inflation", "taux", "budget", "économie", "marchés",
 ]
 
-# --------- Pydantic schema (salida LLM) ---------
+# ---------- Pydantic schema (LLM output) ----------
 class Link(BaseModel):
     title: str
     source: str
@@ -80,7 +79,7 @@ class Brief(BaseModel):
     es: BriefLang
     en: BriefLang
     fr: BriefLang
-# ----------------------------------------------
+# -------------------------------------------------
 
 
 def norm_title(t: str) -> str:
@@ -130,14 +129,14 @@ def fetch_entries(source: str, url: str, region: str, limit: int = 25):
         return []
 
 def dedupe_items(items):
-    # 1) dedupe por URL
+    # 1) dedupe by URL
     by_url = {}
     for it in items:
         u = it["url"]
         if u:
             by_url.setdefault(u, it)
 
-    # 2) dedupe fuzzy por título dentro de cada región
+    # 2) fuzzy dedupe by title within region
     final = []
     seen = {}
     for it in by_url.values():
@@ -149,16 +148,17 @@ def dedupe_items(items):
         seen[reg].append(rt)
         final.append(it)
 
-    # Prioriza score (política/economía) dentro de región
+    # prioritize politics/econ score within region
     final.sort(key=lambda x: (x["region"], -x["score"]))
     return final
 
 def top_links(items, region, k=5):
     cand = [it for it in items if it["region"] == region]
     cand.sort(key=lambda x: -x["score"])
-    # si hay suficientes relevantes, filtra score>0; si no, no filtres
+
     filtered = [it for it in cand if it["score"] > 0]
     use = filtered if len(filtered) >= min(3, k) else cand
+
     out = []
     for it in use[:k]:
         if it["url"]:
@@ -210,6 +210,14 @@ def render(template: str, mapping: dict) -> str:
         out = out.replace("{{" + k + "}}", v)
     return out
 
+def nav_hrefs(lang: str):
+    # Works for GitHub Pages root OR project pages. All relative.
+    if lang == "es":
+        return {"HREF_ES": "./", "HREF_EN": "en/", "HREF_FR": "fr/"}
+    if lang == "en":
+        return {"HREF_ES": "../", "HREF_EN": "./", "HREF_FR": "../fr/"}
+    return {"HREF_ES": "../", "HREF_EN": "../en/", "HREF_FR": "./"}  # fr
+
 def build_page(lang, brief_lang_dict, template_html, date_str):
     def sec(key):
         v = brief_lang_dict.get(key, {})
@@ -224,6 +232,8 @@ def build_page(lang, brief_lang_dict, template_html, date_str):
     mapping = {
         "FECHA": date_str,
         "LANG": lang.upper(),
+        "HTML_LANG": lang,
+        **nav_hrefs(lang),
 
         "SPAIN_CONTENT": (sp.get("summary") or "").strip(),
         "EU_CONTENT": (eu.get("summary") or "").strip(),
@@ -251,7 +261,7 @@ def main():
     now = datetime.now(TZ)
     date_str = now.strftime("%d / %m / %Y")
 
-    # 1) recolecta
+    # 1) collect
     all_items = []
     for region, feeds in FEEDS.items():
         for source, url in feeds:
@@ -281,14 +291,14 @@ def main():
                 ),
             )
 
-            brief_obj = resp.parsed  # instancia Brief (Pydantic)
+            brief_obj = resp.parsed  # Pydantic Brief
             brief_dict = brief_obj.model_dump()
             logging.info("LLM parsed OK")
 
         except Exception as ex:
             logging.exception("LLM call/parse failed: %s", ex)
 
-    # 3) fallback si no hay LLM
+    # 3) fallback
     if not brief_dict:
         logging.warning("FALLBACK mode (no LLM or parse failure)")
         brief_dict = {}
