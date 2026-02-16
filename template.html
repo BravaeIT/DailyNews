@@ -1,57 +1,36 @@
-import os
-import feedparser
-import json
-import re
-from datetime import datetime
-from google import genai
-
-client = genai.Client(api_key=os.environ.get("GOOGLE_API_KEY") or os.environ.get("GEMINI_API_KEY"))
-
-def fetch_top_news():
-    feeds = {'ES': 'https://e00-expansion.uecdn.es/rss/portada.xml',
-             'UK': 'https://www.ft.com/?format=rss',
-             'GL': 'https://rss.nytimes.com/services/xml/rss/nyt/World.xml'}
-    text = ""
-    for region, url in feeds.items():
-        try:
-            d = feedparser.parse(url)
-            for entry in d.entries[:5]:
-                text += f"[{region}] {entry.title}. "
-        except: continue
-    return text
-
-def analyze():
-    raw_news = fetch_top_news()
-    prompt = f"Summarize these news in Spanish for a financial briefing. Return ONLY a JSON object with keys: 'espana', 'europa', 'global', 'insight'. News: {raw_news}"
-    
-    try:
-        response = client.models.generate_content(model="gemini-2.0-flash", contents=prompt)
-        clean_json = re.search(r'\{.*\}', response.text, re.DOTALL).group(0)
-        return json.loads(clean_json)
-    except:
-        return {
-            "espana": "Actualidad financiera española: Revisando Expansión.",
-            "europa": "Reporte Europeo: Analizando tendencias en FT y Les Échos.",
-            "global": "Mercados Globales: Siguiendo la sesión internacional.",
-            "insight": "Análisis de riesgo en curso."
-        }
-
-def run():
-    data = analyze()
-    # LEEMOS DE LA PLANTILLA
-    with open("template.html", "r", encoding="utf-8") as f:
-        html = f.read()
-    
-    # REEMPLAZAMOS
-    html = html.replace("{{FECHA}}", datetime.now().strftime("%d / %m / %Y"))
-    html = html.replace("{{ES_CONTENT}}", data['espana'])
-    html = html.replace("{{EU_CONTENT}}", data['europa'])
-    html = html.replace("{{GL_CONTENT}}", data['global'])
-    html = html.replace("{{IA_INSIGHT}}", data['insight'])
-
-    # ESCRIBIMOS EL RESULTADO EN INDEX.HTML
-    with open("index.html", "w", encoding="utf-8") as f:
-        f.write(html)
-
-if __name__ == "__main__":
-    run()
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>The Daily Brief</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { background-color: #0a0a0c; color: #d1d1d6; font-family: sans-serif; }
+        .gold-accent { color: #c5a059; }
+    </style>
+</head>
+<body class="p-8">
+    <header class="max-w-4xl mx-auto border-b border-gray-800 pb-8 mb-8 text-center">
+        <h1 class="text-4xl italic text-white mb-2">The Daily Brief</h1>
+        <p class="text-xs uppercase tracking-widest text-gray-500">{{FECHA}}</p>
+    </header>
+    <main class="max-w-4xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-12">
+        <section>
+            <h2 class="gold-accent font-bold uppercase text-sm mb-4">España</h2>
+            <p class="text-lg leading-relaxed">{{ES_CONTENT}}</p>
+        </section>
+        <section>
+            <h2 class="gold-accent font-bold uppercase text-sm mb-4">Europa & UK</h2>
+            <p class="text-lg leading-relaxed">{{EU_CONTENT}}</p>
+        </section>
+        <section>
+            <h2 class="gold-accent font-bold uppercase text-sm mb-4">Global</h2>
+            <p class="text-lg leading-relaxed">{{GL_CONTENT}}</p>
+        </section>
+        <section class="bg-gray-900 p-6 rounded border-l-2 border-gold-accent">
+            <h2 class="gold-accent font-bold uppercase text-[10px] mb-2">IA Strategic Insight</h2>
+            <p class="italic text-sm">{{IA_INSIGHT}}</p>
+        </section>
+    </main>
+</body>
+</html>
