@@ -36,7 +36,7 @@ jobs:
 
       - name: Debug (show first lines)
         run: |
-          ls --all --long public
+          ls -la public
           head -n 40 public/index.html
 
       - uses: actions/upload-pages-artifact@v3
