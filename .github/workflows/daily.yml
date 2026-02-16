@@ -1,0 +1,32 @@
+name: Daily News Update
+on:
+  schedule:
+    - cron: '0 7 * * *' # Se ejecuta a las 7:00 AM cada día
+  workflow_dispatch: # Botón para ejecutarlo a mano
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.9'
+          
+      - name: Install dependencies
+        run: pip install google-generativeai feedparser
+        
+      - name: Run update script
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+        run: python update_news.py
+        
+      - name: Commit and push if changed
+        run: |
+          git config --global user.name 'NewsBot'
+          git config --global user.email 'bot@github.com'
+          git add index.html
+          git commit -m "Update news for today" || exit 0
+          git push
