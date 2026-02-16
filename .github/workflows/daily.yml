@@ -1,29 +1,54 @@
 name: Daily News Update
+
 on:
   workflow_dispatch:
   schedule:
-    - cron: '0 7 * * *'
+    # OJO: cron en GitHub Actions es UTC.
+    # 07:00 UTC = 08:00 Europe/Madrid en invierno.
+    - cron: "0 7 * * *"
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
 
 jobs:
   build:
     runs-on: ubuntu-latest
-    permissions:
-      contents: write # IMPORTANTE: Permiso explícito de escritura
     steps:
       - uses: actions/checkout@v4
+
       - uses: actions/setup-python@v5
         with:
-          python-version: '3.11'
-      - name: Install
-        run: pip install google-genai feedparser
-      - name: Run
+          python-version: "3.11"
+
+      - name: Install deps
+        run: pip install feedparser requests google-genai
+
+      - name: Build site
         env:
           GOOGLE_API_KEY: ${{ secrets.GEMINI_API_KEY }}
-        run: python update_news.py
-      - name: Deploy
+        run: python update_news.py --outdir public
+
+      - name: Debug (show first lines)
         run: |
-          git config --global user.name 'NewsBot'
-          git config --global user.email 'bot@github.com'
-          git add index.html
-          git commit -m "Update" || exit 0
-          git push
+          ls -ლა public
+          head -n 40 public/index.html
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: public
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/deploy-pages@v4
+        id: deployment
