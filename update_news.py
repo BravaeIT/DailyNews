@@ -7,6 +7,10 @@ from pathlib import Path
 from datetime import datetime
 from zoneinfo import ZoneInfo
 from difflib import SequenceMatcher
+from pydantic import BaseModel, Field
+from typing import List
+from google.genai import types
+
 
 import requests
 import feedparser
@@ -54,6 +58,27 @@ KEYWORDS = [
 ]
 
 UA = "Mozilla/5.0 (compatible; DailyBriefBot/1.0; +https://github.com/)"
+
+class Link(BaseModel):
+    title: str
+    source: str
+    url: str
+
+class Section(BaseModel):
+    summary: str = Field(description="2–4 sentences, politics/economy focus.")
+    links: List[Link] = []
+
+class BriefLang(BaseModel):
+    spain: Section
+    europe_uk: Section
+    usa: Section
+    row: Section
+    insight: Section
+
+class Brief(BaseModel):
+    es: BriefLang
+    en: BriefLang
+    fr: BriefLang
 
 def norm_title(t: str) -> str:
     t = (t or "").strip().lower()
@@ -235,19 +260,31 @@ def main():
 
     # 2) llama LLM (si hay API key)
     api_key = os.environ.get("GOOGLE_API_KEY") or os.environ.get("GEMINI_API_KEY")
+    logging.info("Gemini API key present: %s", "yes" if api_key else "no")
+
     brief = None
     if api_key:
         try:
             client = genai.Client(api_key=api_key)
-            prompt = build_prompt(items, date_str)
-            resp = client.models.generate_content(model=MODEL, contents=prompt)
-            text = getattr(resp, "text", "") or ""
-            brief = extract_first_json(text)
-            if not brief:
-                logging.warning("LLM returned non-JSON. Falling back.")
-        except Exception as ex:
-            logging.warning("LLM call failed: %s", ex)
+    
+            response = client.models.generate_content(
+                model="gemini-2.0-flash",
+                contents=prompt,  # tu prompt con el payload de items
+                config=types.GenerateContentConfig(
+                    response_mime_type="application/json",
+                    response_schema=Brief,
+                    temperature=0.3,
+                    max_output_tokens=1800,
+                ),
+            )
 
+        # Si el modelo respeta el schema, esto ya viene parseado:
+        brief = response.parsed  # -> instancia Brief (pydantic)
+        logging.info("LLM parsed OK")
+
+    except Exception as ex:
+        logging.exception("LLM call/parse failed: %s", ex) 
+    
     # 3) fallback sin LLM: bullets por región
     if not brief:
         def top_links(region):
