@@ -39,6 +39,7 @@ jobs:
       - name: Build site
         env:
           GOOGLE_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           GEMINI_MODEL: gemini-2.0-flash
         run: python update_news.py --outdir public
 
