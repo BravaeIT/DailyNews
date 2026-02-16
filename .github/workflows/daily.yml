@@ -3,8 +3,7 @@ name: Daily News Update
 on:
   workflow_dispatch:
   schedule:
-    # OJO: cron en GitHub Actions es UTC.
-    # 07:00 UTC = 08:00 Europe/Madrid en invierno.
+    # GitHub Actions cron = UTC
     - cron: "0 7 * * *"
 
 permissions:
@@ -27,17 +26,21 @@ jobs:
           python-version: "3.11"
 
       - name: Install deps
-        run: pip install feedparser requests google-genai
+        run: pip install feedparser requests google-genai pydantic
 
       - name: Build site
         env:
           GOOGLE_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          GEMINI_MODEL: gemini-2.0-flash
         run: python update_news.py --outdir public
 
-      - name: Debug (show first lines)
+      - name: Debug
         run: |
+          set -euxo pipefail
           ls -la public
-          head -n 40 public/index.html
+          head -n 60 public/index.html || true
+          test -f public/en/index.html
+          test -f public/fr/index.html
 
       - uses: actions/upload-pages-artifact@v3
         with:
