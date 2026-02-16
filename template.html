@@ -1,57 +1,81 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Intelligence Brief | 2026</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&family=Playfair+Display:italic,wght@700&display=swap" rel="stylesheet">
-    <style>
-        body { background-color: #050505; color: #a1a1aa; font-family: 'Inter', sans-serif; }
-        .serif { font-family: 'Playfair Display', serif; }
-        .gold { color: #d4af37; }
-        .glass { background: #0f0f12; border: 1px solid #1f1f23; }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Intelligence Brief | 2026</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&family=Playfair+Display:italic,wght@700&display=swap" rel="stylesheet">
+  <style>
+    body { background-color: #050505; color: #a1a1aa; font-family: 'Inter', sans-serif; }
+    .serif { font-family: 'Playfair Display', serif; }
+    .gold { color: #d4af37; }
+    .glass { background: #0f0f12; border: 1px solid #1f1f23; }
+  </style>
 </head>
+
 <body class="p-6 md:p-12">
-    <div class="max-w-5xl mx-auto">
-        <header class="border-b border-zinc-900 pb-12 mb-12 flex justify-between items-end">
-            <div>
-                <h1 class="text-5xl md:text-7xl text-white serif italic">The Daily Brief</h1>
-                <p class="text-[10px] tracking-[0.4em] uppercase text-zinc-500 mt-4">Análisis Multilingüe de Fuentes de Élite</p>
-            </div>
-            <div class="text-[10px] font-bold text-zinc-600 uppercase tracking-widest pb-1">
-                {{FECHA}}
-            </div>
-        </header>
+  <div class="max-w-5xl mx-auto">
+    <header class="border-b border-zinc-900 pb-10 mb-12 flex justify-between items-end gap-6">
+      <div>
+        <h1 class="text-5xl md:text-7xl text-white serif italic">The Daily Brief</h1>
+        <p class="text-[10px] tracking-[0.4em] uppercase text-zinc-500 mt-4">
+          Análisis Multilingüe de Fuentes de Élite
+        </p>
 
-        <div class="grid grid-cols-1 md:grid-cols-12 gap-16">
-            <div class="md:col-span-8 space-y-16">
-                <section>
-                    <h2 class="text-white text-[10px] font-bold uppercase tracking-[0.3em] mb-6 flex items-center">
-                        <span class="w-8 h-[1px] bg-zinc-800 mr-4"></span> España
-                    </h2>
-                    <div class="text-xl text-zinc-300 leading-relaxed font-light">{{ES_CONTENT}}</div>
-                </section>
-                <section>
-                    <h2 class="text-white text-[10px] font-bold uppercase tracking-[0.3em] mb-6 flex items-center">
-                        <span class="w-8 h-[1px] bg-zinc-800 mr-4"></span> Europa & UK
-                    </h2>
-                    <div class="text-lg text-zinc-400 leading-relaxed font-light">{{EU_CONTENT}}</div>
-                </section>
-            </div>
-
-            <aside class="md:col-span-4 space-y-12">
-                <div class="glass p-8 border-l-2 border-[#d4af37]">
-                    <h2 class="gold text-[9px] font-bold uppercase tracking-widest mb-4 italic">Strategic Insight</h2>
-                    <p class="text-sm text-zinc-200 italic leading-relaxed">"{{IA_INSIGHT}}"</p>
-                </div>
-                <section>
-                    <h2 class="text-zinc-600 text-[10px] font-bold uppercase tracking-widest mb-6">USA & Global</h2>
-                    <div class="text-sm text-zinc-400 leading-relaxed">{{GL_CONTENT}}</div>
-                </section>
-            </div>
+        <div class="mt-4 text-[10px] uppercase tracking-widest text-zinc-600">
+          <a class="hover:text-zinc-300" href="/">ES</a>
+          <span class="mx-2 text-zinc-800">|</span>
+          <a class="hover:text-zinc-300" href="/en/">EN</a>
+          <span class="mx-2 text-zinc-800">|</span>
+          <a class="hover:text-zinc-300" href="/fr/">FR</a>
+          <span class="ml-3 text-zinc-700">({{LANG}})</span>
         </div>
+      </div>
+
+      <div class="text-[10px] font-bold text-zinc-600 uppercase tracking-widest pb-1">
+        {{FECHA}}
+      </div>
+    </header>
+
+    <div class="grid grid-cols-1 md:grid-cols-12 gap-16">
+      <div class="md:col-span-8 space-y-16">
+        <section>
+          <h2 class="text-white text-[10px] font-bold uppercase tracking-[0.3em] mb-6 flex items-center">
+            <span class="w-8 h-[1px] bg-zinc-800 mr-4"></span> España
+          </h2>
+          <div class="text-xl text-zinc-300 leading-relaxed font-light">{{SPAIN_CONTENT}}</div>
+          {{SPAIN_LINKS}}
+        </section>
+
+        <section>
+          <h2 class="text-white text-[10px] font-bold uppercase tracking-[0.3em] mb-6 flex items-center">
+            <span class="w-8 h-[1px] bg-zinc-800 mr-4"></span> Europa & UK
+          </h2>
+          <div class="text-lg text-zinc-400 leading-relaxed font-light">{{EU_CONTENT}}</div>
+          {{EU_LINKS}}
+        </section>
+      </div>
+
+      <aside class="md:col-span-4 space-y-12">
+        <div class="glass p-8 border-l-2 border-[#d4af37]">
+          <h2 class="gold text-[9px] font-bold uppercase tracking-widest mb-4 italic">Strategic Insight</h2>
+          <p class="text-sm text-zinc-200 italic leading-relaxed">"{{IA_INSIGHT}}"</p>
+        </div>
+
+        <section>
+          <h2 class="text-zinc-600 text-[10px] font-bold uppercase tracking-widest mb-6">USA</h2>
+          <div class="text-sm text-zinc-400 leading-relaxed">{{USA_CONTENT}}</div>
+          {{USA_LINKS}}
+        </section>
+
+        <section>
+          <h2 class="text-zinc-600 text-[10px] font-bold uppercase tracking-widest mb-6">RoW</h2>
+          <div class="text-sm text-zinc-400 leading-relaxed">{{ROW_CONTENT}}</div>
+          {{ROW_LINKS}}
+        </section>
+      </aside>
     </div>
+  </div>
 </body>
 </html>
