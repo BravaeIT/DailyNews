@@ -6,7 +6,14 @@ from datetime import datetime
 from google import genai
 
 # Configuración
-client = genai.Client(api_key=os.environ["GOOGLE_API_KEY"])
+# Este bloque intenta leer la llave de dos formas posibles para evitar errores
+api_key = os.environ.get("GOOGLE_API_KEY") or os.environ.get("GEMINI_API_KEY")
+
+if not api_key:
+    # Esto nos dirá en el log de GitHub si la llave realmente no está llegando
+    raise ValueError("ERROR: No se detecta la API Key. Revisa los Secrets de GitHub.")
+
+client = genai.Client(api_key=api_key)
 
 def fetch_top_news():
     feeds = {
