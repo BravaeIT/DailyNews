@@ -66,7 +66,7 @@ class Link(BaseModel):
 
 class Section(BaseModel):
     summary: str = Field(description="2–4 sentences; politics & economics focus; analytical; no hype.")
-    links: List[Link] = []
+    links: List[Link] = Field(default_factory=list)
 
 class BriefLang(BaseModel):
     spain: Section
@@ -80,6 +80,18 @@ class Brief(BaseModel):
     en: BriefLang
     fr: BriefLang
 # -------------------------------------------------
+
+
+def write_build_status(outdir: Path, status: dict):
+    """Write public diagnostics WITHOUT secrets to public/_build.json"""
+    try:
+        outdir.mkdir(parents=True, exist_ok=True)
+        (outdir / "_build.json").write_text(
+            json.dumps(status, ensure_ascii=False, indent=2),
+            encoding="utf-8"
+        )
+    except Exception:
+        pass
 
 
 def norm_title(t: str) -> str:
@@ -129,14 +141,12 @@ def fetch_entries(source: str, url: str, region: str, limit: int = 25):
         return []
 
 def dedupe_items(items):
-    # 1) dedupe by URL
     by_url = {}
     for it in items:
         u = it["url"]
         if u:
             by_url.setdefault(u, it)
 
-    # 2) fuzzy dedupe by title within region
     final = []
     seen = {}
     for it in by_url.values():
@@ -148,7 +158,6 @@ def dedupe_items(items):
         seen[reg].append(rt)
         final.append(it)
 
-    # prioritize politics/econ score within region
     final.sort(key=lambda x: (x["region"], -x["score"]))
     return final
 
@@ -211,7 +220,6 @@ def render(template: str, mapping: dict) -> str:
     return out
 
 def nav_hrefs(lang: str):
-    # Works for GitHub Pages root OR project pages. All relative.
     if lang == "es":
         return {"HREF_ES": "./", "HREF_EN": "en/", "HREF_FR": "fr/"}
     if lang == "en":
@@ -270,12 +278,24 @@ def main():
     items = dedupe_items(all_items)
     logging.info("Collected=%d, after dedupe=%d", len(all_items), len(items))
 
-    # 2) LLM (JSON mode + schema)
-    api_key = os.environ.get("GOOGLE_API_KEY") or os.environ.get("GEMINI_API_KEY")
-    logging.info("Gemini API key present: %s", "yes" if api_key else "no")
+    # 2) LLM (JSON mode + schema) + public build diagnostics
+    api_key = (os.environ.get("GOOGLE_API_KEY") or os.environ.get("GEMINI_API_KEY") or "").strip()
+
+    status = {
+        "date": date_str,
+        "model": MODEL,
+        "key_present": bool(api_key),
+        "llm_ok": False,
+        "llm_mode": None,
+        "llm_text_len": 0,
+        "error": None,
+        "items_collected": len(all_items),
+        "items_after_dedupe": len(items),
+    }
 
     brief_dict = None
     if api_key:
+        logging.info("Gemini API key present: yes")
         logging.info("Using model=%s", MODEL)
         try:
             client = genai.Client(api_key=api_key)
@@ -292,19 +312,35 @@ def main():
                 ),
             )
 
-            raw_text = getattr(resp, "text", None)
-            if raw_text:
-                logging.info("LLM text length=%d", len(raw_text))
-            else:
-                logging.info("LLM text is empty or not present")
+            raw_text = getattr(resp, "text", "") or ""
+            status["llm_text_len"] = len(raw_text)
 
-            brief_obj = resp.parsed  # Pydantic Brief
-            brief_dict = brief_obj.model_dump()
-            logging.info("LLM parsed OK")
+            # Try schema parsed
+            try:
+                brief_obj = resp.parsed
+                brief_dict = brief_obj.model_dump()
+                status["llm_ok"] = True
+                status["llm_mode"] = "schema_parsed"
+                logging.info("LLM parsed OK (schema)")
+            except Exception as ex_parse:
+                # Try json.loads of text
+                try:
+                    brief_dict = json.loads(raw_text)
+                    status["llm_ok"] = True
+                    status["llm_mode"] = "json_loads"
+                    status["error"] = f"schema_parse_failed={type(ex_parse).__name__}"
+                    logging.warning("LLM parsed OK via json.loads (schema parse failed)")
+                except Exception as ex_json:
+                    status["error"] = f"schema_parse={type(ex_parse).__name__}; json_loads={type(ex_json).__name__}"
+                    logging.exception("LLM parse failed (schema + json.loads)")
 
         except Exception as ex:
-            logging.exception("LLM call/parse failed: %s", ex)
-    
+            status["error"] = f"llm_call={type(ex).__name__}: {str(ex)[:200]}"
+            logging.exception("LLM call failed")
+    else:
+        logging.info("Gemini API key present: no")
+        status["error"] = "no_api_key"
+
     # 3) fallback
     if not brief_dict:
         logging.warning("FALLBACK mode (no LLM or parse failure)")
@@ -322,6 +358,9 @@ def main():
     template_html = Path("template.html").read_text(encoding="utf-8")
     outdir = Path(args.outdir)
     outdir.mkdir(parents=True, exist_ok=True)
+
+    # Publish build diagnostics to the site
+    write_build_status(outdir, status)
 
     for lang in LANGS:
         lang_dir = outdir if lang == "es" else (outdir / lang)
