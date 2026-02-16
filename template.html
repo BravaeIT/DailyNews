@@ -1,0 +1,57 @@
+import os
+import feedparser
+import json
+import re
+from datetime import datetime
+from google import genai
+
+client = genai.Client(api_key=os.environ.get("GOOGLE_API_KEY") or os.environ.get("GEMINI_API_KEY"))
+
+def fetch_top_news():
+    feeds = {'ES': 'https://e00-expansion.uecdn.es/rss/portada.xml',
+             'UK': 'https://www.ft.com/?format=rss',
+             'GL': 'https://rss.nytimes.com/services/xml/rss/nyt/World.xml'}
+    text = ""
+    for region, url in feeds.items():
+        try:
+            d = feedparser.parse(url)
+            for entry in d.entries[:5]:
+                text += f"[{region}] {entry.title}. "
+        except: continue
+    return text
+
+def analyze():
+    raw_news = fetch_top_news()
+    prompt = f"Summarize these news in Spanish for a financial briefing. Return ONLY a JSON object with keys: 'espana', 'europa', 'global', 'insight'. News: {raw_news}"
+    
+    try:
+        response = client.models.generate_content(model="gemini-2.0-flash", contents=prompt)
+        clean_json = re.search(r'\{.*\}', response.text, re.DOTALL).group(0)
+        return json.loads(clean_json)
+    except:
+        return {
+            "espana": "Actualidad financiera española: Revisando Expansión.",
+            "europa": "Reporte Europeo: Analizando tendencias en FT y Les Échos.",
+            "global": "Mercados Globales: Siguiendo la sesión internacional.",
+            "insight": "Análisis de riesgo en curso."
+        }
+
+def run():
+    data = analyze()
+    # LEEMOS DE LA PLANTILLA
+    with open("template.html", "r", encoding="utf-8") as f:
+        html = f.read()
+    
+    # REEMPLAZAMOS
+    html = html.replace("{{FECHA}}", datetime.now().strftime("%d / %m / %Y"))
+    html = html.replace("{{ES_CONTENT}}", data['espana'])
+    html = html.replace("{{EU_CONTENT}}", data['europa'])
+    html = html.replace("{{GL_CONTENT}}", data['global'])
+    html = html.replace("{{IA_INSIGHT}}", data['insight'])
+
+    # ESCRIBIMOS EL RESULTADO EN INDEX.HTML
+    with open("index.html", "w", encoding="utf-8") as f:
+        f.write(html)
+
+if __name__ == "__main__":
+    run()
