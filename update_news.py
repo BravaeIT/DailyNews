@@ -276,6 +276,7 @@ def main():
 
     brief_dict = None
     if api_key:
+        logging.info("Using model=%s", MODEL)
         try:
             client = genai.Client(api_key=api_key)
             prompt = build_prompt(items, date_str)
@@ -295,8 +296,14 @@ def main():
             brief_dict = brief_obj.model_dump()
             logging.info("LLM parsed OK")
 
-        except Exception as ex:
-            logging.exception("LLM call/parse failed: %s", ex)
+            raw_text = getattr(resp, "text", None)
+            if raw_text:
+                logging.info("LLM text length=%d", len(raw_text))
+            else:
+                logging.info("LLM text is empty or not present")
+
+    except Exception as ex:
+        logging.exception("LLM call/parse failed: %s", ex)
 
     # 3) fallback
     if not brief_dict:
